@@ -1,4 +1,5 @@
 import express, { Request, Response } from "express";
+import cors from "cors";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StreamableHTTPServerTransport } from "@modelcontextprotocol/sdk/server/streamableHttp.js";
 import { z } from "zod";
@@ -467,6 +468,7 @@ function buildServer(): McpServer {
 // ─── Express HTTP server ─────────────────────────────────────────────────────
 
 const app = express();
+app.use(cors({ origin: "*" }));
 app.use(express.json());
 
 // Optional: protect the endpoint with a bearer token
