@@ -384,6 +384,249 @@ function buildServer(): McpServer {
     }
   );
 
+  // ── Google Search Console ────────────────────────────────────────────────
+
+  server.tool(
+    "gsc_get_sites",
+    "List all Google Search Console sites connected to Search Atlas.",
+    {},
+    async () => {
+      const data = await call("otto", "/gsc/sites/");
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "gsc_get_performance",
+    "Get Google Search Console search performance data (clicks, impressions, CTR, position).",
+    {
+      site_url: z.string().describe("Site URL as registered in GSC (e.g. https://example.com/)"),
+      start_date: z.string().describe("Start date in YYYY-MM-DD format"),
+      end_date: z.string().describe("End date in YYYY-MM-DD format"),
+      dimensions: z.array(z.enum(["query", "page", "country", "device", "date"])).optional().describe("Dimensions to group results by"),
+      row_limit: z.number().optional().describe("Maximum number of rows to return (default 25, max 1000)"),
+    },
+    async ({ site_url, start_date, end_date, dimensions, row_limit }) => {
+      const body: Record<string, unknown> = { site_url, start_date, end_date };
+      if (dimensions) body.dimensions = dimensions;
+      if (row_limit) body.row_limit = row_limit;
+      const data = await call("otto", "/gsc/performance/", "POST", body);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "gsc_get_index_coverage",
+    "Get Google Search Console index coverage report for a site.",
+    {
+      site_url: z.string().describe("Site URL as registered in GSC"),
+    },
+    async ({ site_url }) => {
+      const data = await call("otto", "/gsc/index-coverage/", "GET", undefined, { site_url });
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "gsc_get_sitemaps",
+    "List sitemaps submitted to Google Search Console for a site.",
+    {
+      site_url: z.string().describe("Site URL as registered in GSC"),
+    },
+    async ({ site_url }) => {
+      const data = await call("otto", "/gsc/sitemaps/", "GET", undefined, { site_url });
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── Google Analytics ──────────────────────────────────────────────────────
+
+  server.tool(
+    "ga_get_properties",
+    "List all Google Analytics 4 properties connected to Search Atlas.",
+    {},
+    async () => {
+      const data = await call("otto", "/ga/properties/");
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "ga_get_traffic",
+    "Get Google Analytics traffic overview (sessions, users, pageviews, bounce rate).",
+    {
+      property_id: z.string().describe("GA4 property ID"),
+      start_date: z.string().describe("Start date in YYYY-MM-DD format"),
+      end_date: z.string().describe("End date in YYYY-MM-DD format"),
+      metrics: z.array(z.string()).optional().describe("Metrics to retrieve (e.g. sessions, activeUsers, screenPageViews)"),
+    },
+    async ({ property_id, start_date, end_date, metrics }) => {
+      const body: Record<string, unknown> = { property_id, start_date, end_date };
+      if (metrics) body.metrics = metrics;
+      const data = await call("otto", "/ga/traffic/", "POST", body);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "ga_get_top_pages",
+    "Get top performing pages from Google Analytics by sessions or pageviews.",
+    {
+      property_id: z.string().describe("GA4 property ID"),
+      start_date: z.string().describe("Start date in YYYY-MM-DD format"),
+      end_date: z.string().describe("End date in YYYY-MM-DD format"),
+      limit: z.number().optional().describe("Number of top pages to return (default 10)"),
+    },
+    async ({ property_id, start_date, end_date, limit }) => {
+      const body: Record<string, unknown> = { property_id, start_date, end_date };
+      if (limit) body.limit = limit;
+      const data = await call("otto", "/ga/top-pages/", "POST", body);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "ga_get_conversions",
+    "Get conversion and goal data from Google Analytics.",
+    {
+      property_id: z.string().describe("GA4 property ID"),
+      start_date: z.string().describe("Start date in YYYY-MM-DD format"),
+      end_date: z.string().describe("End date in YYYY-MM-DD format"),
+    },
+    async ({ property_id, start_date, end_date }) => {
+      const data = await call("otto", "/ga/conversions/", "POST", { property_id, start_date, end_date });
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── Google Business Profile (extended) ────────────────────────────────────
+
+  server.tool(
+    "gbp_get_reviews",
+    "Get reviews for a Google Business Profile location.",
+    {
+      business_id: z.string().describe("Business ID from local_seo_add_business"),
+      page: z.number().optional().describe("Page number for pagination"),
+    },
+    async ({ business_id, page }) => {
+      const params: Record<string, number> = {};
+      if (page) params.page = page;
+      const data = await call("keyword", `/v3/google-business/${business_id}/reviews/`, "GET", undefined, params);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "gbp_reply_to_review",
+    "Post or update a reply to a Google Business Profile review.",
+    {
+      business_id: z.string().describe("Business ID"),
+      review_id: z.string().describe("Review ID to reply to"),
+      reply: z.string().describe("Reply text"),
+    },
+    async ({ business_id, review_id, reply }) => {
+      const data = await call("keyword", `/v3/google-business/${business_id}/reviews/${review_id}/reply/`, "POST", { reply });
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "gbp_get_insights",
+    "Get insights for a Google Business Profile (views, searches, direction requests, calls).",
+    {
+      business_id: z.string().describe("Business ID"),
+      start_date: z.string().describe("Start date in YYYY-MM-DD format"),
+      end_date: z.string().describe("End date in YYYY-MM-DD format"),
+    },
+    async ({ business_id, start_date, end_date }) => {
+      const data = await call("keyword", `/v3/google-business/${business_id}/insights/`, "GET", undefined, { start_date, end_date });
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "gbp_create_post",
+    "Create a Google Business Profile post (update, offer, or event).",
+    {
+      business_id: z.string().describe("Business ID"),
+      post_type: z.enum(["update", "offer", "event"]).describe("Type of GBP post"),
+      summary: z.string().describe("Post body text"),
+      call_to_action_type: z.enum(["LEARN_MORE", "BOOK", "ORDER", "SHOP", "SIGN_UP", "CALL"]).optional().describe("Call-to-action button type"),
+      call_to_action_url: z.string().url().optional().describe("URL for the call-to-action button"),
+    },
+    async ({ business_id, post_type, summary, call_to_action_type, call_to_action_url }) => {
+      const body: Record<string, unknown> = { post_type, summary };
+      if (call_to_action_type) body.call_to_action_type = call_to_action_type;
+      if (call_to_action_url) body.call_to_action_url = call_to_action_url;
+      const data = await call("keyword", `/v3/google-business/${business_id}/posts/`, "POST", body);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  // ── Heatmaps ──────────────────────────────────────────────────────────────
+
+  server.tool(
+    "heatmap_list",
+    "List all heatmap projects in Search Atlas.",
+    {
+      page: z.number().optional().describe("Page number for pagination"),
+    },
+    async ({ page }) => {
+      const params: Record<string, number> = {};
+      if (page) params.page = page;
+      const data = await call("otto", "/heatmaps/", "GET", undefined, params);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "heatmap_get",
+    "Get heatmap data for a specific heatmap project.",
+    {
+      heatmap_id: z.string().describe("Heatmap project ID"),
+    },
+    async ({ heatmap_id }) => {
+      const data = await call("otto", `/heatmaps/${heatmap_id}/`);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "heatmap_create",
+    "Create a new heatmap tracking project for a URL.",
+    {
+      url: z.string().url().describe("URL to track with heatmap"),
+      name: z.string().optional().describe("Project name"),
+      device: z.enum(["desktop", "mobile", "tablet"]).optional().describe("Device type to track (default: desktop)"),
+    },
+    async ({ url, name, device }) => {
+      const body: Record<string, unknown> = { url };
+      if (name) body.name = name;
+      if (device) body.device = device;
+      const data = await call("otto", "/heatmaps/", "POST", body);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
+  server.tool(
+    "heatmap_get_snapshots",
+    "Get recorded click/scroll/move snapshots for a heatmap project.",
+    {
+      heatmap_id: z.string().describe("Heatmap project ID"),
+      type: z.enum(["click", "scroll", "move"]).optional().describe("Type of heatmap data to retrieve"),
+      start_date: z.string().optional().describe("Start date in YYYY-MM-DD format"),
+      end_date: z.string().optional().describe("End date in YYYY-MM-DD format"),
+    },
+    async ({ heatmap_id, type, start_date, end_date }) => {
+      const params: Record<string, string> = {};
+      if (type) params.type = type;
+      if (start_date) params.start_date = start_date;
+      if (end_date) params.end_date = end_date;
+      const data = await call("otto", `/heatmaps/${heatmap_id}/snapshots/`, "GET", undefined, params);
+      return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
+    }
+  );
+
   // ── Cloud Stacks ─────────────────────────────────────────────────────────
 
   server.tool(
