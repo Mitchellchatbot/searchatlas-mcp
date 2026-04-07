@@ -12,6 +12,7 @@ const BASES = {
   keyword: "https://keyword.searchatlas.com/api",
   otto: "https://sa.searchatlas.com/api/v2",
   cg: "https://ca.searchatlas.com/api/cg/v1",
+  main: "https://api.searchatlas.com/api",
 } as const;
 
 type HttpMethod = "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
@@ -574,7 +575,7 @@ function buildServer(): McpServer {
     async ({ page }) => {
       const params: Record<string, number> = {};
       if (page) params.page = page;
-      const data = await call("otto", "/heatmaps/", "GET", undefined, params);
+      const data = await call("main", "/heatmaps/", "GET", undefined, params);
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -586,7 +587,7 @@ function buildServer(): McpServer {
       heatmap_id: z.string().describe("Heatmap project ID"),
     },
     async ({ heatmap_id }) => {
-      const data = await call("otto", `/heatmaps/${heatmap_id}/`);
+      const data = await call("main", `/heatmaps/${heatmap_id}/`);
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -603,7 +604,7 @@ function buildServer(): McpServer {
       const body: Record<string, unknown> = { url };
       if (name) body.name = name;
       if (device) body.device = device;
-      const data = await call("otto", "/heatmaps/", "POST", body);
+      const data = await call("main", "/heatmaps/", "POST", body);
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
     }
   );
@@ -622,7 +623,7 @@ function buildServer(): McpServer {
       if (type) params.type = type;
       if (start_date) params.start_date = start_date;
       if (end_date) params.end_date = end_date;
-      const data = await call("otto", `/heatmaps/${heatmap_id}/snapshots/`, "GET", undefined, params);
+      const data = await call("main", `/heatmaps/${heatmap_id}/snapshots/`, "GET", undefined, params);
       return { content: [{ type: "text", text: JSON.stringify(data, null, 2) }] };
     }
   );
